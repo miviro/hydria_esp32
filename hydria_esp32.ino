@@ -14,8 +14,6 @@ static void goToSleep() {
     Serial.printf("Sleeping for %d s...\n", SLEEP_INTERVAL_S);
     Serial.flush();
 
-    esp_sleep_enable_timer_wakeup((uint64_t)SLEEP_INTERVAL_S * 1000000ULL);
-    esp_deep_sleep_start();
 }
 
 // Arduino entry points
@@ -24,8 +22,9 @@ void setup() {
     Serial.println("Boot");
     sonar.begin();
 
-    takeReadings();
-    goToSleep();
 }
 
-void loop() { }
+void loop() {
+    takeReadings();
+    delay(1000);
+}

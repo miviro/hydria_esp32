@@ -1,4 +1,5 @@
 #include "sonar.h"
+#include "esp32-hal.h"
 
 Sonar::Sonar(uint8_t trigPin, uint8_t echoPin)
     : _trig(trigPin), _echo(echoPin) {}
@@ -16,20 +17,23 @@ long Sonar::read() {
 
   // Send >1 ms TTL pulse (Mode 2 low-power trigger)
   digitalWrite(_trig, HIGH);
-  delay(TRIGGER_PULSE_MS);
+  delayMicroseconds(TRIGGER_PULSE_US);
   digitalWrite(_trig, LOW);
 
-  delayMicroseconds(500);
-  long duration = pulseIn(_echo, HIGH, ECHO_TIMEOUT_US);
-  Serial.printf("sonar raw: %ld \n", duration);
+  delayMicroseconds(1000); // let trigger transient settle before listening
+  long duration = pulseIn(_echo, HIGH, 100000UL); // 100 ms → ~17 m leeway
   return duration;
 }
 
 float Sonar::readCm() {
   long duration = read();
 
-  if (duration == 0)
+  if (duration == 0) {
+    Serial.println("sonar: no echo");
     return -1.0f;
+  }
 
-  return (duration * SOUND_SPEED_CM_US) / 2.0f;
+  float cm = (duration * SOUND_SPEED_CM_US) / 2.0f;
+  Serial.printf("sonar: %.1f cm\n", cm);
+  return cm;
 }
