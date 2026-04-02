@@ -1,6 +1,7 @@
 #include "src/config.h"
 #include "src/sonar.h"
 #include <esp_sleep.h>
+#include <driver/rtc_io.h>
 
 // Module instances
 static Sonar sonar(TRIGGER_PIN, ECHO_PIN);
@@ -17,6 +18,9 @@ static void goToSleep() {
     Serial.printf("Sleeping for %d s...\n", SLEEP_INTERVAL_S);
     Serial.flush();
     esp_sleep_enable_timer_wakeup((uint64_t)SLEEP_INTERVAL_S * 1000000ULL);
+    esp_sleep_enable_ext0_wakeup(WAKEUP_PIN, 1);
+    rtc_gpio_pulldown_en(WAKEUP_PIN);
+    rtc_gpio_pullup_dis(WAKEUP_PIN);
     esp_deep_sleep_start();
 }
 
