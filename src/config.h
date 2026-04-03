@@ -9,3 +9,6 @@
 // Sonar Pins
 #define TRIGGER_PIN 26
 #define ECHO_PIN 27
+
+// Turbidity Pin
+#define TURBIDITY_PIN 33

@@ -1,15 +1,18 @@
 #include "src/config.h"
 #include "src/sonar.h"
+#include "src/turbidity.h"
 #include <esp_sleep.h>
 #include <driver/rtc_io.h>
 
 // Module instances
 static Sonar sonar(TRIGGER_PIN, ECHO_PIN);
+static Turbidity turbidity(TURBIDITY_PIN);
 
 // Helpers
 static void takeReadings() {
     for (int i = 0; i < 3; i++) {
         sonar.readCm();
+        turbidity.read();
         if (i < 2) delay(333); // ~3 readings per second
     }
 }
@@ -29,6 +32,7 @@ void setup() {
     Serial.begin(115200);
     Serial.println("Boot");
     sonar.begin();
+    turbidity.begin();
     takeReadings();
     goToSleep();
 }
