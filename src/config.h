@@ -12,3 +12,6 @@
 
 // Turbidity Pin
 #define TURBIDITY_PIN 33
+
+// Humidity Pin
+#define HUMIDITY_PIN 32
