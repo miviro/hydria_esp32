@@ -11,30 +11,30 @@ void Sonar::begin() {
   digitalWrite(_trig, LOW);
 }
 
-long Sonar::read() {
-  // Ensure trigger line is low before pulse
+void Sonar::trigger() {
   digitalWrite(_trig, LOW);
   delayMicroseconds(5);
-
-  // Send >1 ms TTL pulse (Mode 2 low-power trigger)
   digitalWrite(_trig, HIGH);
   delayMicroseconds(TRIGGER_PULSE_US);
   digitalWrite(_trig, LOW);
+  // caller can do other work here while echo is in flight
+}
 
-  delayMicroseconds(1000); // let trigger transient settle before listening
-  long duration = pulseIn(_echo, HIGH, 100000UL); // 100 ms → ~17 m leeway
-  return duration;
+float Sonar::listenCm() {
+  delayMicroseconds(1000); // let trigger transient settle
+  long duration = pulseIn(_echo, HIGH, 100000UL);
+  if (duration == 0)
+    return -1.0f;
+  return (duration * SOUND_SPEED_CM_US) / 2.0f;
+}
+
+long Sonar::read() {
+  trigger();
+  delayMicroseconds(1000);
+  return pulseIn(_echo, HIGH, 100000UL);
 }
 
 float Sonar::readCm() {
-  long duration = read();
-
-  if (duration == 0) {
-    LOG("sonar: no echo\n");
-    return -1.0f;
-  }
-
-  float cm = (duration * SOUND_SPEED_CM_US) / 2.0f;
-  LOG("sonar: %.1f cm\n", cm);
-  return cm;
+  trigger();
+  return listenCm();
 }

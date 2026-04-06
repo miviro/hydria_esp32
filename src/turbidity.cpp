@@ -9,7 +9,5 @@ void Turbidity::begin() { pinMode(_pin, INPUT); }
 
 int Turbidity::read() {
   // DFRobot analog: higher value = clearer, lower value = more turbid
-  int value = analogRead(_pin);
-  LOG("turbidity: %d\n", value);
-  return value;
+  return analogRead(_pin);
 }

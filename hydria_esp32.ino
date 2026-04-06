@@ -5,9 +5,11 @@
 #include "src/humidity.h"
 #include <esp_sleep.h>
 #include <driver/rtc_io.h>
+#include <sys/time.h>
 
-RTC_DATA_ATTR static int wakeCount = 0;
-RTC_DATA_ATTR static uint32_t secondsSinceLastMeasure = 0;
+RTC_DATA_ATTR static time_t sleepTime       = 0;
+RTC_DATA_ATTR static time_t lastMeasureTime = 0;
+RTC_DATA_ATTR static int    extWakeCount    = 0;
 
 static Sonar sonar(TRIGGER_PIN, ECHO_PIN);
 static Turbidity turbidity(TURBIDITY_PIN);
@@ -17,10 +19,11 @@ static void takeReadings() {
     float sonarSum = 0, turbiditySum = 0, humiditySum = 0;
 
     for (int i = 0; i < READINGS_PER_MEASUREMENT; i++) {
-        sonarSum     += sonar.readCm();
+        sonar.trigger();
         turbiditySum += turbidity.read();
         humiditySum  += humidity.read();
-        if (i < READINGS_PER_MEASUREMENT - 1) delay(200);
+        sonarSum     += sonar.listenCm();
+        if (i < READINGS_PER_MEASUREMENT - 1) delay(60);
     }
 
     LOG("avg sonar:     %.1f cm\n", sonarSum     / READINGS_PER_MEASUREMENT);
@@ -29,6 +32,10 @@ static void takeReadings() {
 }
 
 static void goToSleep() {
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    sleepTime = tv.tv_sec;
+
     LOG("Sleeping for %d s...\n", SLEEP_INTERVAL_S);
 #if DEBUG
     Serial.flush();
@@ -45,20 +52,27 @@ void setup() {
     Serial.begin(115200);
 #endif
 
-    wakeCount++;
-    secondsSinceLastMeasure += SLEEP_INTERVAL_S;
-    LOG("Wake #%d, %d s since last measure\n", wakeCount, secondsSinceLastMeasure);
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    time_t wakeTime = tv.tv_sec;
 
-    bool countReached = wakeCount >= WAKEUP_COUNT_THRESHOLD;
-    bool timeReached  = secondsSinceLastMeasure >= MEASURE_INTERVAL_S;
+    bool timerWakeup = esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER;
+    bool extWakeup   = esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0;
 
-    if (countReached || timeReached) {
+    if (extWakeup) extWakeCount++;
+
+    uint32_t sinceMeasureS = (lastMeasureTime == 0) ? 0 : (uint32_t)(wakeTime - lastMeasureTime);
+    LOG("Woke up (%s), ext count %d/%d, %u s since last measure\n",
+        timerWakeup ? "timer" : "ext", extWakeCount, EXT_WAKEUP_THRESHOLD, sinceMeasureS);
+
+    bool shouldMeasure = timerWakeup || (extWakeCount >= EXT_WAKEUP_THRESHOLD) || (sleepTime == 0);
+    if (shouldMeasure) {
         sonar.begin();
         turbidity.begin();
         humidity.begin();
         takeReadings();
-        wakeCount = 0;
-        secondsSinceLastMeasure = 0;
+        lastMeasureTime = wakeTime;
+        extWakeCount    = 0;
     }
 
     goToSleep();

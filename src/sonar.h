@@ -11,6 +11,8 @@ public:
   Sonar(uint8_t trigPin, uint8_t echoPin);
 
   void begin();
+  void trigger();   // fire the pulse, return immediately
+  float listenCm(); // wait for echo and return distance in cm
   long read();
   float readCm();
 
