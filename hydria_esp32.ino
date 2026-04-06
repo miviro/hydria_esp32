@@ -7,7 +7,7 @@
 #include <driver/rtc_io.h>
 #include <sys/time.h>
 
-RTC_DATA_ATTR static time_t sleepTime       = 0;
+// TODO: turn on sensors only when awaken and measuring
 RTC_DATA_ATTR static time_t lastMeasureTime = 0;
 RTC_DATA_ATTR static int    extWakeCount    = 0;
 
@@ -32,10 +32,6 @@ static void takeReadings() {
 }
 
 static void goToSleep() {
-    struct timeval tv;
-    gettimeofday(&tv, nullptr);
-    sleepTime = tv.tv_sec;
-
     LOG("Sleeping for %d s...\n", SLEEP_INTERVAL_S);
 #if DEBUG
     Serial.flush();
@@ -61,11 +57,16 @@ void setup() {
 
     if (extWakeup) extWakeCount++;
 
-    uint32_t sinceMeasureS = (lastMeasureTime == 0) ? 0 : (uint32_t)(wakeTime - lastMeasureTime);
+    uint32_t sinceMeasureS;
+    if (lastMeasureTime == 0) {
+      sinceMeasureS = 0;
+    } else {
+      sinceMeasureS = (uint32_t)(wakeTime - lastMeasureTime);
+    }
     LOG("Woke up (%s), ext count %d/%d, %u s since last measure\n",
         timerWakeup ? "timer" : "ext", extWakeCount, EXT_WAKEUP_THRESHOLD, sinceMeasureS);
 
-    bool shouldMeasure = timerWakeup || (extWakeCount >= EXT_WAKEUP_THRESHOLD) || (sleepTime == 0);
+    bool shouldMeasure = timerWakeup || (extWakeCount >= EXT_WAKEUP_THRESHOLD);
     if (shouldMeasure) {
         sonar.begin();
         turbidity.begin();
