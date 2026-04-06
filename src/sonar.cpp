@@ -1,4 +1,5 @@
 #include "sonar.h"
+#include "debug.h"
 #include "esp32-hal.h"
 
 Sonar::Sonar(uint8_t trigPin, uint8_t echoPin)
@@ -29,11 +30,11 @@ float Sonar::readCm() {
   long duration = read();
 
   if (duration == 0) {
-    Serial.println("sonar: no echo");
+    LOG("sonar: no echo\n");
     return -1.0f;
   }
 
   float cm = (duration * SOUND_SPEED_CM_US) / 2.0f;
-  Serial.printf("sonar: %.1f cm\n", cm);
+  LOG("sonar: %.1f cm\n", cm);
   return cm;
 }

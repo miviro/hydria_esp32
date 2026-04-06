@@ -1,4 +1,5 @@
 #include "humidity.h"
+#include "debug.h"
 
 static uint8_t _pin;
 
@@ -10,6 +11,6 @@ int Humidity::read() {
   // Typical Chinese capacitive sensor: higher value = wetter, lower = drier
   // (resistive sensors are inverted — swap if needed)
   int value = analogRead(_pin);
-  Serial.printf("humidity: %d\n", value);
+  LOG("humidity: %d\n", value);
   return value;
 }

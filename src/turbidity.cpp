@@ -1,4 +1,5 @@
 #include "turbidity.h"
+#include "debug.h"
 
 static uint8_t _pin;
 
@@ -9,6 +10,6 @@ void Turbidity::begin() { pinMode(_pin, INPUT); }
 int Turbidity::read() {
   // DFRobot analog: higher value = clearer, lower value = more turbid
   int value = analogRead(_pin);
-  Serial.printf("turbidity: %d\n", value);
+  LOG("turbidity: %d\n", value);
   return value;
 }
