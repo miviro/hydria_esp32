@@ -19,3 +19,6 @@
 
 // Humidity Pin
 #define HUMIDITY_PIN 32
+
+// Sensor Power Switch (PNP transistor base, active LOW)
+#define SENSOR_POWER_PIN 25

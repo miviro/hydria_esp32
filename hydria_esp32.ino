@@ -7,7 +7,6 @@
 #include <driver/rtc_io.h>
 #include <sys/time.h>
 
-// TODO: turn on sensors only when awaken and measuring
 RTC_DATA_ATTR static time_t lastMeasureTime = 0;
 RTC_DATA_ATTR static int    extWakeCount    = 0;
 
@@ -47,6 +46,8 @@ void setup() {
 #if DEBUG
     Serial.begin(115200);
 #endif
+    pinMode(SENSOR_POWER_PIN, OUTPUT);
+    digitalWrite(SENSOR_POWER_PIN, HIGH);
 
     struct timeval tv;
     gettimeofday(&tv, nullptr);
@@ -68,10 +69,13 @@ void setup() {
 
     bool shouldMeasure = timerWakeup || (extWakeCount >= EXT_WAKEUP_THRESHOLD);
     if (shouldMeasure) {
+        digitalWrite(SENSOR_POWER_PIN, LOW);
+        delay(500);  // let sensors stabilize
         sonar.begin();
         turbidity.begin();
         humidity.begin();
         takeReadings();
+        digitalWrite(SENSOR_POWER_PIN, HIGH);
         lastMeasureTime = wakeTime;
         extWakeCount    = 0;
     }
