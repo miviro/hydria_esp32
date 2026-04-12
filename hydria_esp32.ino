@@ -36,15 +36,18 @@ static void goToSleep() {
     Serial.flush();
 #endif
     esp_sleep_enable_timer_wakeup((uint64_t)SLEEP_INTERVAL_S * 1000000ULL);
-    esp_sleep_enable_ext0_wakeup(WAKEUP_PIN, 1);
-    rtc_gpio_pulldown_en(WAKEUP_PIN);
+    rtc_gpio_init(WAKEUP_PIN);
+    rtc_gpio_set_direction(WAKEUP_PIN, RTC_GPIO_MODE_INPUT_ONLY);
     rtc_gpio_pullup_dis(WAKEUP_PIN);
+    rtc_gpio_pulldown_en(WAKEUP_PIN);
+    esp_sleep_enable_ext1_wakeup(1ULL << WAKEUP_PIN, ESP_EXT1_WAKEUP_ANY_HIGH);
     esp_deep_sleep_start();
 }
 
 void setup() {
 #if DEBUG
     Serial.begin(115200);
+    delay(100); // give USB CDC time to initialise after each wake cycle
 #endif
     pinMode(SENSOR_POWER_PIN, OUTPUT);
     digitalWrite(SENSOR_POWER_PIN, HIGH);
@@ -54,7 +57,7 @@ void setup() {
     time_t wakeTime = tv.tv_sec;
 
     bool timerWakeup = esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER;
-    bool extWakeup   = esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0;
+    bool extWakeup   = esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1;
 
     if (extWakeup) extWakeCount++;
 

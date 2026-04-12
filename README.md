@@ -4,6 +4,7 @@ curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.
 arduino-cli config init
 arduino-cli core update-index --config-file ~/.arduino15/arduino-cli.yaml
 arduino-cli core install esp32:esp32
+arduino-cli lib install "U8g2"
 ```
 # Usage
 `make all`
