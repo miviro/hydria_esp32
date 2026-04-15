@@ -22,3 +22,9 @@
 
 // Sensor Power Switch (PNP transistor base, active LOW)
 #define SENSOR_POWER_PIN 5
+
+// Heltec V4 OLED (SSD1306 128x64, I2C)
+#define OLED_SDA 17
+#define OLED_SCL 18
+#define OLED_RST 21
+#define VEXT_CTRL 36 // active LOW — powers the OLED (and LoRa) via Vext rail

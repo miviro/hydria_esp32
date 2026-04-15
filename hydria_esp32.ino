@@ -1,5 +1,6 @@
 #include "src/config.h"
 #include "src/debug.h"
+#include "src/display.h"
 #include "src/sonar.h"
 #include "src/turbidity.h"
 #include "src/humidity.h"
@@ -35,6 +36,7 @@ static void goToSleep() {
 #if DEBUG
     Serial.flush();
 #endif
+    displayOff();
     esp_sleep_enable_timer_wakeup((uint64_t)SLEEP_INTERVAL_S * 1000000ULL);
     rtc_gpio_init(WAKEUP_PIN);
     rtc_gpio_set_direction(WAKEUP_PIN, RTC_GPIO_MODE_INPUT_ONLY);
@@ -49,6 +51,9 @@ void setup() {
     Serial.begin(115200);
     delay(100); // give USB CDC time to initialise after each wake cycle
 #endif
+    displayBegin();
+    displayImage();
+
     pinMode(SENSOR_POWER_PIN, OUTPUT);
     digitalWrite(SENSOR_POWER_PIN, HIGH);
 
@@ -72,13 +77,13 @@ void setup() {
 
     bool shouldMeasure = timerWakeup || (extWakeCount >= EXT_WAKEUP_THRESHOLD);
     if (shouldMeasure) {
-        digitalWrite(SENSOR_POWER_PIN, LOW);
+        digitalWrite(SENSOR_POWER_PIN, HIGH);
         delay(500);  // let sensors stabilize
         sonar.begin();
         turbidity.begin();
         humidity.begin();
         takeReadings();
-        digitalWrite(SENSOR_POWER_PIN, HIGH);
+        digitalWrite(SENSOR_POWER_PIN, LOW);
         lastMeasureTime = wakeTime;
         extWakeCount    = 0;
     }
