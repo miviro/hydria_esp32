@@ -1,18 +1,18 @@
 #pragma once
 
 // Deep Sleep
-#define SLEEP_INTERVAL_S       300  // 5 minutes
+#define SLEEP_INTERVAL_S 300 // 5 minutes
 
 // Wakeup
-#define WAKEUP_PIN             GPIO_NUM_4
-#define EXT_WAKEUP_THRESHOLD   5    // measure after this many external wakeups
+#define WAKEUP_PIN GPIO_NUM_4
+#define EXT_WAKEUP_THRESHOLD 2 // measure after this many external wakeups
 
 // Readings
-#define READINGS_PER_MEASUREMENT 5  // average over this many samples
+#define READINGS_PER_MEASUREMENT 5 // average over this many samples
 
 // Sonar Pins
 #define TRIGGER_PIN 6
-#define ECHO_PIN    7
+#define ECHO_PIN 7
 
 // Turbidity Pin
 #define TURBIDITY_PIN 3
