@@ -1,5 +1,6 @@
 #pragma once
 
 void displayBegin();
-void displayImage();
+void displayStatus(const char *text);
+void displayReadings(float sonarCm, int turbidity, int humidity);
 void displayOff();

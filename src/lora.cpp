@@ -38,19 +38,17 @@ void loraPrintFrame(const HydriaFrame &frame) {
     }
     Serial.println("]");
     // Human-readable
-    if (frame.sinceMeasureS == FRAME_NO_PRIOR_MEASURE) {
-        Serial.printf("  wake=%-5s since=first-boot sonar=%.1f cm turb=%u hum=%u\n",
-            (frame.flags & FRAME_FLAG_EXT_WAKEUP) ? "ext" : "timer",
-            frame.sonarMm / 10.0f,
-            frame.turbidity,
-            frame.humidity);
+    const char *wake  = (frame.flags & FRAME_FLAG_EXT_WAKEUP) ? "ext" : "timer";
+    const char *since = (frame.sinceMeasureS == FRAME_NO_PRIOR_MEASURE) ? "first-boot" : nullptr;
+    char sinceBuf[16];
+    if (!since) { snprintf(sinceBuf, sizeof(sinceBuf), "%u s", frame.sinceMeasureS); since = sinceBuf; }
+
+    if (frame.sonarMm == 0xFFFF) {
+        Serial.printf("  wake=%-5s since=%-10s sonar=no echo  turb=%u hum=%u\n",
+            wake, since, frame.turbidity, frame.humidity);
     } else {
-        Serial.printf("  wake=%-5s since=%u s sonar=%.1f cm turb=%u hum=%u\n",
-            (frame.flags & FRAME_FLAG_EXT_WAKEUP) ? "ext" : "timer",
-            frame.sinceMeasureS,
-            frame.sonarMm / 10.0f,
-            frame.turbidity,
-            frame.humidity);
+        Serial.printf("  wake=%-5s since=%-10s sonar=%.1f cm turb=%u hum=%u\n",
+            wake, since, frame.sonarMm / 10.0f, frame.turbidity, frame.humidity);
     }
 }
 #endif

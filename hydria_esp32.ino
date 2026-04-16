@@ -18,17 +18,19 @@ static Humidity humidity(HUMIDITY_PIN);
 
 static Readings takeReadings() {
     float sonarSum = 0, turbiditySum = 0, humiditySum = 0;
+    int sonarCount = 0;
 
     for (int i = 0; i < READINGS_PER_MEASUREMENT; i++) {
         sonar.trigger();
         turbiditySum += turbidity.read();
         humiditySum  += humidity.read();
-        sonarSum     += sonar.listenCm();
+        float s = sonar.listenCm();
+        if (s >= 0) { sonarSum += s; sonarCount++; }
         if (i < READINGS_PER_MEASUREMENT - 1) delay(60);
     }
 
     Readings r;
-    r.sonarCm   = sonarSum     / READINGS_PER_MEASUREMENT;
+    r.sonarCm   = (sonarCount > 0) ? (sonarSum / sonarCount) : -1.0f;
     r.turbidity = turbiditySum / READINGS_PER_MEASUREMENT;
     r.humidity  = humiditySum  / READINGS_PER_MEASUREMENT;
 
@@ -45,7 +47,7 @@ static HydriaFrame buildFrame(const Readings &r, bool extWakeup, uint32_t sinceM
     f.sinceMeasureS = (lastMeasureTime == 0)
                           ? FRAME_NO_PRIOR_MEASURE
                           : (uint16_t)(sinceMeasureS > 0xFFFEu ? 0xFFFEu : sinceMeasureS);
-    f.sonarMm       = (uint16_t)(r.sonarCm * 10.0f + 0.5f);
+    f.sonarMm       = (r.sonarCm < 0) ? 0xFFFFu : (uint16_t)(r.sonarCm * 10.0f + 0.5f);
     f.turbidity     = (uint16_t)(r.turbidity + 0.5f);
     f.humidity      = (uint16_t)(r.humidity  + 0.5f);
     return f;
@@ -55,8 +57,8 @@ static void goToSleep() {
     LOG("Sleeping for %d s...\n", SLEEP_INTERVAL_S);
 #if DEBUG
     Serial.flush();
-#endif
     displayOff();
+#endif
     esp_sleep_enable_timer_wakeup((uint64_t)SLEEP_INTERVAL_S * 1000000ULL);
     rtc_gpio_init(WAKEUP_PIN);
     rtc_gpio_set_direction(WAKEUP_PIN, RTC_GPIO_MODE_INPUT_ONLY);
@@ -70,9 +72,9 @@ void setup() {
 #if DEBUG
     Serial.begin(115200);
     delay(100); // give USB CDC time to initialise after each wake cycle
-#endif
     displayBegin();
-    displayImage();
+    displayStatus("HYDRIA");
+#endif
 
     pinMode(SENSOR_POWER_PIN, OUTPUT);
     digitalWrite(SENSOR_POWER_PIN, HIGH);
@@ -103,6 +105,9 @@ void setup() {
         turbidity.begin();
         humidity.begin();
 
+#if DEBUG
+        displayStatus("reading");
+#endif
         Readings r = takeReadings();
 
         digitalWrite(SENSOR_POWER_PIN, LOW);
@@ -113,10 +118,16 @@ void setup() {
 
 #if DEBUG
         loraPrintFrame(frame);
+        displayReadings(r.sonarCm, (int)r.turbidity, (int)r.humidity);
+        delay(5000);
+        displayStatus("sending");
 #endif
-
         loraBegin();
         loraSend(frame);
+#if DEBUG
+        displayStatus("ok");
+        delay(500);
+#endif
     }
 
     goToSleep();
