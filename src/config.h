@@ -27,4 +27,15 @@
 #define OLED_SDA 17
 #define OLED_SCL 18
 #define OLED_RST 21
-#define VEXT_CTRL 36 // active LOW — powers the OLED (and LoRa) via Vext rail
+#define VEXT_CTRL 36 // active LOW - powers the OLED (and LoRa) via Vext rail
+
+// LoRa SX1262 - internal SPI bus (Heltec V4)
+#define LORA_SS 8
+#define LORA_SCK 9
+#define LORA_MOSI 10
+#define LORA_MISO 11
+#define LORA_RST 12
+#define LORA_DIO1 14
+#define LORA_BUSY 13
+#define LORA_FREQ 868.0f
+#define LORA_POWER 14 // dBm
