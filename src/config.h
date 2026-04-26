@@ -29,6 +29,10 @@
 #define OLED_RST 21
 #define VEXT_CTRL 36 // active LOW - powers the OLED (and LoRa) via Vext rail
 
+// Heltec V4 Battery ADC
+#define VBAT_ADC_PIN  1  // ADC reads Vbat/2 through a 1:2 voltage divider
+#define VBAT_ADC_CTRL 37 // active HIGH — enables the battery voltage divider
+
 // LoRa SX1262 - internal SPI bus (Heltec V4)
 #define LORA_SS 8
 #define LORA_SCK 9

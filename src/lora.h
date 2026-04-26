@@ -8,7 +8,7 @@
 // sinceMeasureS sentinel: no prior measurement (first boot)
 #define FRAME_NO_PRIOR_MEASURE 0xFFFFu
 
-// 9-byte packed telemetry frame
+// 10-byte packed telemetry frame
 #pragma pack(push, 1)
 struct HydriaFrame {
     uint8_t  flags;           // see FRAME_FLAG_* above
@@ -16,6 +16,7 @@ struct HydriaFrame {
     uint16_t sonarMm;         // sonar distance in mm (0.1 cm resolution, 0–65535 mm)
     uint16_t turbidity;       // raw ADC 0–4095
     uint16_t humidity;        // raw ADC 0–4095
+    uint8_t  battery;         // 0–100 %
 };
 #pragma pack(pop)
 
@@ -24,6 +25,7 @@ struct Readings {
     float sonarCm;
     float turbidity;
     float humidity;
+    int   battery;  // 0–100 %
 };
 
 bool loraBegin();

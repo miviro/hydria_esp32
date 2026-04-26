@@ -44,11 +44,11 @@ void loraPrintFrame(const HydriaFrame &frame) {
     if (!since) { snprintf(sinceBuf, sizeof(sinceBuf), "%u s", frame.sinceMeasureS); since = sinceBuf; }
 
     if (frame.sonarMm == 0xFFFF) {
-        Serial.printf("  wake=%-5s since=%-10s sonar=no echo  turb=%u hum=%u\n",
-            wake, since, frame.turbidity, frame.humidity);
+        Serial.printf("  wake=%-5s since=%-10s sonar=no echo  turb=%u hum=%u batt=%u%%\n",
+            wake, since, frame.turbidity, frame.humidity, frame.battery);
     } else {
-        Serial.printf("  wake=%-5s since=%-10s sonar=%.1f cm turb=%u hum=%u\n",
-            wake, since, frame.sonarMm / 10.0f, frame.turbidity, frame.humidity);
+        Serial.printf("  wake=%-5s since=%-10s sonar=%.1f cm turb=%u hum=%u batt=%u%%\n",
+            wake, since, frame.sonarMm / 10.0f, frame.turbidity, frame.humidity, frame.battery);
     }
 }
 #endif

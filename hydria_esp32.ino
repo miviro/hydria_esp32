@@ -1,6 +1,7 @@
 #include "src/config.h"
 #include "src/debug.h"
 #include "src/display.h"
+#include "src/battery.h"
 #include "src/sonar.h"
 #include "src/turbidity.h"
 #include "src/humidity.h"
@@ -33,10 +34,12 @@ static Readings takeReadings() {
     r.sonarCm   = (sonarCount > 0) ? (sonarSum / sonarCount) : -1.0f;
     r.turbidity = turbiditySum / READINGS_PER_MEASUREMENT;
     r.humidity  = humiditySum  / READINGS_PER_MEASUREMENT;
+    r.battery   = batteryPercent();
 
     LOG("avg sonar:     %.1f cm\n", r.sonarCm);
     LOG("avg turbidity: %.0f\n",    r.turbidity);
     LOG("avg humidity:  %.0f\n",    r.humidity);
+    LOG("battery:       %d %%\n",   r.battery);
 
     return r;
 }
@@ -50,6 +53,7 @@ static HydriaFrame buildFrame(const Readings &r, bool extWakeup, uint32_t sinceM
     f.sonarMm       = (r.sonarCm < 0) ? 0xFFFFu : (uint16_t)(r.sonarCm * 10.0f + 0.5f);
     f.turbidity     = (uint16_t)(r.turbidity + 0.5f);
     f.humidity      = (uint16_t)(r.humidity  + 0.5f);
+    f.battery       = (uint8_t)r.battery;
     return f;
 }
 
@@ -118,7 +122,7 @@ void setup() {
 
 #if DEBUG
         loraPrintFrame(frame);
-        displayReadings(r.sonarCm, (int)r.turbidity, (int)r.humidity);
+        displayReadings(r.sonarCm, (int)r.turbidity, (int)r.humidity, r.battery);
         delay(5000);
         displayStatus("sending");
 #endif

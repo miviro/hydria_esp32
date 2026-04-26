@@ -23,17 +23,19 @@ void displayStatus(const char *text) {
     u8g2.sendBuffer();
 }
 
-void displayReadings(float sonarCm, int turbidity, int humidity) {
+void displayReadings(float sonarCm, int turbidity, int humidity, int batteryPct) {
     char buf[32];
     u8g2.clearBuffer();
     u8g2.setFont(u8g2_font_logisoso16_tr);
     if (sonarCm < 0) snprintf(buf, sizeof(buf), "S: ---");
     else              snprintf(buf, sizeof(buf), "S: %.1f cm", sonarCm);
-    u8g2.drawStr(0, 18, buf);
+    u8g2.drawStr(0, 16, buf);
     snprintf(buf, sizeof(buf), "T: %d", turbidity);
-    u8g2.drawStr(0, 38, buf);
+    u8g2.drawStr(0, 32, buf);
     snprintf(buf, sizeof(buf), "H: %d", humidity);
-    u8g2.drawStr(0, 58, buf);
+    u8g2.drawStr(0, 48, buf);
+    snprintf(buf, sizeof(buf), "B: %d%%", batteryPct);
+    u8g2.drawStr(0, 64, buf);
     u8g2.sendBuffer();
 }
 
