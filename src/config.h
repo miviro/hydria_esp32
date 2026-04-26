@@ -11,17 +11,17 @@
 #define READINGS_PER_MEASUREMENT 5 // average over this many samples
 
 // Sonar Pins
-#define TRIGGER_PIN 6
-#define ECHO_PIN 7
+#define TRIGGER_PIN 48
+#define ECHO_PIN 47
 
 // Turbidity Pin
-#define TURBIDITY_PIN 3
+#define TURBIDITY_PIN 3  // ADC1_CH2, Header J3
 
 // Humidity Pin
-#define HUMIDITY_PIN 2
+#define HUMIDITY_PIN 2   // ADC1_CH1, Header J3
 
 // Sensor Power Switch (PNP transistor base, active LOW)
-#define SENSOR_POWER_PIN 5
+#define SENSOR_POWER_PIN 33  // Header J2 (opposite side from sensors)
 
 // Heltec V4 OLED (SSD1306 128x64, I2C)
 #define OLED_SDA 17
