@@ -8,7 +8,7 @@
 // sinceMeasureS sentinel: no prior measurement (first boot)
 #define FRAME_NO_PRIOR_MEASURE 0xFFFFu
 
-// 10-byte packed telemetry frame
+// 16-byte packed telemetry frame (10 data + 6-byte truncated HMAC-SHA256)
 #pragma pack(push, 1)
 struct HydriaFrame {
     uint8_t  flags;           // see FRAME_FLAG_* above
@@ -17,6 +17,7 @@ struct HydriaFrame {
     uint16_t turbidity;       // raw ADC 0–4095
     uint16_t humidity;        // raw ADC 0–4095
     uint8_t  battery;         // 0–100 %
+    uint8_t  hmac[6];         // first 6 bytes of HMAC-SHA256(key, data fields above)
 };
 #pragma pack(pop)
 
@@ -29,7 +30,7 @@ struct Readings {
 };
 
 bool loraBegin();
-bool loraSend(const HydriaFrame &frame);
+bool loraSend(HydriaFrame &frame); // fills frame.hmac then transmits
 
 #if DEBUG
 void loraPrintFrame(const HydriaFrame &frame);
