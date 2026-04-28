@@ -20,9 +20,6 @@
 // Humidity Pin
 #define HUMIDITY_PIN 2   // ADC1_CH1, Header J3
 
-// Sensor Power Switch (PNP transistor base, active LOW)
-#define SENSOR_POWER_PIN 33  // Header J2 (opposite side from sensors)
-
 // Heltec V4 OLED (SSD1306 128x64, I2C)
 #define OLED_SDA 17
 #define OLED_SCL 18

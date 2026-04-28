@@ -7,9 +7,6 @@ static U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, OLED_RST, OLED_SCL,
                                                 OLED_SDA);
 
 void displayBegin() {
-    pinMode(VEXT_CTRL, OUTPUT);
-    digitalWrite(VEXT_CTRL, LOW); // enable Vext power rail
-    delay(50);                    // let the rail stabilise before talking to OLED
     u8g2.begin();
 }
 
@@ -41,5 +38,4 @@ void displayReadings(float sonarCm, int turbidity, int humidity, int batteryPct)
 
 void displayOff() {
     u8g2.setPowerSave(1);
-    digitalWrite(VEXT_CTRL, HIGH); // cut Vext power rail
 }

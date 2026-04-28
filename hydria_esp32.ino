@@ -63,25 +63,30 @@ static void goToSleep() {
     Serial.flush();
     displayOff();
 #endif
+    digitalWrite(VEXT_CTRL, HIGH); // Vext off: cuts sensor + OLED rails for deep sleep
     esp_sleep_enable_timer_wakeup((uint64_t)SLEEP_INTERVAL_S * 1000000ULL);
+    // Wake on GPIO -> GND. Pullup uses VDD3P3_RTC, which is always alive in
+    // deep sleep, so wake works on battery (the header 3V3 pin tracks Vext
+    // and is dead while VEXT_CTRL is HIGH).
     rtc_gpio_init(WAKEUP_PIN);
     rtc_gpio_set_direction(WAKEUP_PIN, RTC_GPIO_MODE_INPUT_ONLY);
-    rtc_gpio_pullup_dis(WAKEUP_PIN);
-    rtc_gpio_pulldown_en(WAKEUP_PIN);
-    esp_sleep_enable_ext1_wakeup(1ULL << WAKEUP_PIN, ESP_EXT1_WAKEUP_ANY_HIGH);
+    rtc_gpio_pulldown_dis(WAKEUP_PIN);
+    rtc_gpio_pullup_en(WAKEUP_PIN);
+    esp_sleep_enable_ext1_wakeup(1ULL << WAKEUP_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
     esp_deep_sleep_start();
 }
 
 void setup() {
+    pinMode(VEXT_CTRL, OUTPUT);
+    digitalWrite(VEXT_CTRL, LOW); // Vext on: powers sensors via Ve (and OLED in DEBUG)
+    delay(50);                    // let the rail stabilise
+
 #if DEBUG
     Serial.begin(115200);
     delay(100); // give USB CDC time to initialise after each wake cycle
     displayBegin();
     displayStatus("HYDRIA");
 #endif
-
-    pinMode(SENSOR_POWER_PIN, OUTPUT);
-    digitalWrite(SENSOR_POWER_PIN, HIGH);
 
     struct timeval tv;
     gettimeofday(&tv, nullptr);
@@ -103,8 +108,6 @@ void setup() {
 
     bool shouldMeasure = timerWakeup || (extWakeCount >= EXT_WAKEUP_THRESHOLD);
     if (shouldMeasure) {
-        digitalWrite(SENSOR_POWER_PIN, HIGH);
-        delay(500);  // let sensors stabilize
         sonar.begin();
         turbidity.begin();
         humidity.begin();
@@ -114,7 +117,6 @@ void setup() {
 #endif
         Readings r = takeReadings();
 
-        digitalWrite(SENSOR_POWER_PIN, LOW);
         lastMeasureTime = wakeTime;
         extWakeCount    = 0;
 
