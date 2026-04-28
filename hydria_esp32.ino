@@ -124,7 +124,7 @@ void setup() {
 
 #if DEBUG
         loraPrintFrame(frame);
-        displayReadings(r.sonarCm, (int)r.turbidity, (int)r.humidity, r.battery);
+        displayReadings(r.sonarCm, (int)r.turbidity, (int)r.humidity, r.battery, sinceMeasureS);
         delay(5000);
         displayStatus("sending");
 #endif
