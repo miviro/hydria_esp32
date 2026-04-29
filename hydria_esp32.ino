@@ -7,6 +7,7 @@
 #include "src/humidity.h"
 #include "src/lora.h"
 #include <esp_sleep.h>
+#include <driver/gpio.h>
 #include <driver/rtc_io.h>
 #include <sys/time.h>
 
@@ -63,7 +64,12 @@ static void goToSleep() {
     Serial.flush();
     displayOff();
 #endif
-    digitalWrite(VEXT_CTRL, HIGH); // Vext off: cuts sensor + OLED rails for deep sleep
+    digitalWrite(VEXT_CTRL, HIGH);          // Vext off: kills OLED rail
+    digitalWrite(SENSOR_POWER_PIN, LOW);    // sensor power off
+    // GPIO 36 and 44 aren't RTC pins; latch their levels so they survive deep sleep.
+    gpio_hold_en((gpio_num_t)VEXT_CTRL);
+    gpio_hold_en((gpio_num_t)SENSOR_POWER_PIN);
+    gpio_deep_sleep_hold_en();
     esp_sleep_enable_timer_wakeup((uint64_t)SLEEP_INTERVAL_S * 1000000ULL);
     // Wake on GPIO -> GND. Pullup uses VDD3P3_RTC, which is always alive in
     // deep sleep, so wake works on battery (the header 3V3 pin tracks Vext
@@ -77,8 +83,13 @@ static void goToSleep() {
 }
 
 void setup() {
+    gpio_hold_dis((gpio_num_t)VEXT_CTRL);
+    gpio_hold_dis((gpio_num_t)SENSOR_POWER_PIN);
+    gpio_deep_sleep_hold_dis();
     pinMode(VEXT_CTRL, OUTPUT);
-    digitalWrite(VEXT_CTRL, LOW); // Vext on: powers sensors via Ve (and OLED in DEBUG)
+    digitalWrite(VEXT_CTRL, LOW); // Vext on: powers OLED in DEBUG mode
+    pinMode(SENSOR_POWER_PIN, OUTPUT);
+    digitalWrite(SENSOR_POWER_PIN, LOW); // sensors off until we measure
     delay(50);                    // let the rail stabilise
 
 #if DEBUG
@@ -108,6 +119,8 @@ void setup() {
 
     bool shouldMeasure = timerWakeup || (extWakeCount >= EXT_WAKEUP_THRESHOLD);
     if (shouldMeasure) {
+        digitalWrite(SENSOR_POWER_PIN, HIGH); // power sensors via GPIO 44
+        delay(500);                            // let sensors stabilise before reading
         sonar.begin();
         turbidity.begin();
         humidity.begin();

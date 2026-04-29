@@ -20,6 +20,9 @@
 // Humidity Pin
 #define HUMIDITY_PIN 2   // ADC1_CH1, Header J3
 
+// Sensor Power Switch (active HIGH, direct GPIO drive)
+#define SENSOR_POWER_PIN 44 // U0RXD on Header J2 — free when USB CDC is the Serial
+
 // Heltec V4 OLED (SSD1306 128x64, I2C)
 #define OLED_SDA 17
 #define OLED_SCL 18
