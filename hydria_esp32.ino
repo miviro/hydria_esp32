@@ -9,10 +9,9 @@
 #include <esp_sleep.h>
 #include <driver/gpio.h>
 #include <driver/rtc_io.h>
-#include <sys/time.h>
 
-RTC_DATA_ATTR static time_t lastMeasureTime = 0;
-RTC_DATA_ATTR static int    extWakeCount    = 0;
+RTC_DATA_ATTR static int     extWakeCount = 0;
+RTC_DATA_ATTR static uint8_t rollingCode  = 0; // 4-bit counter incremented every send
 
 static Sonar sonar(TRIGGER_PIN, ECHO_PIN);
 static Turbidity turbidity(TURBIDITY_PIN);
@@ -45,16 +44,14 @@ static Readings takeReadings() {
     return r;
 }
 
-static HydriaFrame buildFrame(const Readings &r, bool extWakeup, uint32_t sinceMeasureS) {
+static HydriaFrame buildFrame(const Readings &r, uint16_t wakeCount, uint8_t rolling) {
     HydriaFrame f;
-    f.flags         = extWakeup ? FRAME_FLAG_EXT_WAKEUP : 0;
-    f.sinceMeasureS = (lastMeasureTime == 0)
-                          ? FRAME_NO_PRIOR_MEASURE
-                          : (uint16_t)(sinceMeasureS > 0xFFFEu ? 0xFFFEu : sinceMeasureS);
-    f.sonarMm       = (r.sonarCm < 0) ? 0xFFFFu : (uint16_t)(r.sonarCm * 10.0f + 0.5f);
-    f.turbidity     = (uint16_t)(r.turbidity + 0.5f);
-    f.humidity      = (uint16_t)(r.humidity  + 0.5f);
-    f.battery       = (uint8_t)r.battery;
+    f.header    = FRAME_HEADER(DEVICE_ID, rolling);
+    f.wakeCount = wakeCount;
+    f.sonarMm   = (r.sonarCm < 0) ? 0xFFFFu : (uint16_t)(r.sonarCm * 10.0f + 0.5f);
+    f.turbidity = (uint16_t)(r.turbidity + 0.5f);
+    f.humidity  = (uint16_t)(r.humidity  + 0.5f);
+    f.battery   = (uint8_t)r.battery;
     return f;
 }
 
@@ -62,13 +59,10 @@ static void goToSleep() {
     LOG("Sleeping for %d s...\n", SLEEP_INTERVAL_S);
 #if DEBUG
     Serial.flush();
-    displayOff();
 #endif
-    digitalWrite(VEXT_CTRL, HIGH);          // Vext off: kills OLED rail
-    digitalWrite(SENSOR_POWER_PIN, LOW);    // sensor power off
-    // GPIO 36 and 44 aren't RTC pins; latch their levels so they survive deep sleep.
+    digitalWrite(VEXT_CTRL, HIGH);          // Vext off: kills OLED + sensor rail
+    // GPIO 36 isn't an RTC pin; latch its level so it survives deep sleep.
     gpio_hold_en((gpio_num_t)VEXT_CTRL);
-    gpio_hold_en((gpio_num_t)SENSOR_POWER_PIN);
     gpio_deep_sleep_hold_en();
     esp_sleep_enable_timer_wakeup((uint64_t)SLEEP_INTERVAL_S * 1000000ULL);
     // Wake on GPIO -> GND. Pullup uses VDD3P3_RTC, which is always alive in
@@ -84,60 +78,46 @@ static void goToSleep() {
 
 void setup() {
     gpio_hold_dis((gpio_num_t)VEXT_CTRL);
-    gpio_hold_dis((gpio_num_t)SENSOR_POWER_PIN);
     gpio_deep_sleep_hold_dis();
     pinMode(VEXT_CTRL, OUTPUT);
-    digitalWrite(VEXT_CTRL, LOW); // Vext on: powers OLED in DEBUG mode
-    pinMode(SENSOR_POWER_PIN, OUTPUT);
-    digitalWrite(SENSOR_POWER_PIN, LOW); // sensors off until we measure
-    delay(50);                    // let the rail stabilise
+    digitalWrite(VEXT_CTRL, HIGH); // Vext off until we actually measure
 
 #if DEBUG
     Serial.begin(115200);
     delay(100); // give USB CDC time to initialise after each wake cycle
-    displayBegin();
-    displayStatus("HYDRIA");
 #endif
-
-    struct timeval tv;
-    gettimeofday(&tv, nullptr);
-    time_t wakeTime = tv.tv_sec;
 
     bool timerWakeup = esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER;
     bool extWakeup   = esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1;
 
     if (extWakeup) extWakeCount++;
 
-    uint32_t sinceMeasureS;
-    if (lastMeasureTime == 0) {
-        sinceMeasureS = 0;
-    } else {
-        sinceMeasureS = (uint32_t)(wakeTime - lastMeasureTime);
-    }
-    LOG("Woke up (%s), ext count %d/%d, %u s since last measure\n",
-        timerWakeup ? "timer" : "ext", extWakeCount, EXT_WAKEUP_THRESHOLD, sinceMeasureS);
+    LOG("Woke up (%s), ext count %d/%d\n",
+        timerWakeup ? "timer" : "ext", extWakeCount, EXT_WAKEUP_THRESHOLD);
 
     bool shouldMeasure = timerWakeup || (extWakeCount >= EXT_WAKEUP_THRESHOLD);
     if (shouldMeasure) {
-        digitalWrite(SENSOR_POWER_PIN, HIGH); // power sensors via GPIO 44
-        delay(500);                            // let sensors stabilise before reading
+        digitalWrite(VEXT_CTRL, LOW); // Vext on: powers OLED + sensors
+        delay(500);                   // let the rail + sensors stabilise
         sonar.begin();
         turbidity.begin();
         humidity.begin();
 
 #if DEBUG
+        displayBegin();
         displayStatus("reading");
 #endif
         Readings r = takeReadings();
 
-        lastMeasureTime = wakeTime;
-        extWakeCount    = 0;
+        uint16_t wakeCount = (uint16_t)extWakeCount;
+        extWakeCount = 0;
 
-        HydriaFrame frame = buildFrame(r, extWakeup, sinceMeasureS);
+        HydriaFrame frame = buildFrame(r, wakeCount, rollingCode);
+        rollingCode = (rollingCode + 1) & 0x0F;
 
 #if DEBUG
         loraPrintFrame(frame);
-        displayReadings(r.sonarCm, (int)r.turbidity, (int)r.humidity, r.battery, sinceMeasureS);
+        displayReadings(r.sonarCm, (int)r.turbidity, (int)r.humidity, r.battery, wakeCount);
         delay(5000);
         displayStatus("sending");
 #endif
@@ -146,6 +126,7 @@ void setup() {
 #if DEBUG
         displayStatus("ok");
         delay(500);
+        displayOff();
 #endif
     }
 

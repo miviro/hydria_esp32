@@ -5,7 +5,11 @@
 
 // Wakeup
 #define WAKEUP_PIN GPIO_NUM_4
-#define EXT_WAKEUP_THRESHOLD 2 // measure after this many external wakeups
+#define EXT_WAKEUP_THRESHOLD 20 // measure after this many external wakeups
+
+// Device identifier (4 bits, 0–15) — packed into the low nibble of the header byte;
+// the high nibble carries a 4-bit rolling counter that increments every transmit.
+#define DEVICE_ID 0x1
 
 // Readings
 #define READINGS_PER_MEASUREMENT 5 // average over this many samples
@@ -19,9 +23,6 @@
 
 // Humidity Pin
 #define HUMIDITY_PIN 2   // ADC1_CH1, Header J3
-
-// Sensor Power Switch (active HIGH, direct GPIO drive)
-#define SENSOR_POWER_PIN 44 // U0RXD on Header J2 — free when USB CDC is the Serial
 
 // Heltec V4 OLED (SSD1306 128x64, I2C)
 #define OLED_SDA 17

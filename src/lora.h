@@ -2,17 +2,18 @@
 #include <Arduino.h>
 #include "config.h"
 
-// Frame flag bits
-#define FRAME_FLAG_EXT_WAKEUP 0x01  // bit 0: 0 = timer wakeup, 1 = ext wakeup
-
-// sinceMeasureS sentinel: no prior measurement (first boot)
-#define FRAME_NO_PRIOR_MEASURE 0xFFFFu
+// Header byte: low nibble = DEVICE_ID, high nibble = rolling counter (anti-replay)
+#define FRAME_DEVICE_ID(hdr)   ((hdr) & 0x0F)
+#define FRAME_ROLLING(hdr)     (((hdr) >> 4) & 0x0F)
+#define FRAME_HEADER(id, roll) ((uint8_t)(((id) & 0x0F) | (((roll) & 0x0F) << 4)))
 
 // 16-byte packed telemetry frame (10 data + 6-byte truncated HMAC-SHA256)
+// Wake source is implicit in wakeCount: == EXT_WAKEUP_THRESHOLD means ext-triggered send,
+// anything else means the periodic timer fired.
 #pragma pack(push, 1)
 struct HydriaFrame {
-    uint8_t  flags;           // see FRAME_FLAG_* above
-    uint16_t sinceMeasureS;   // seconds since last measurement; FRAME_NO_PRIOR_MEASURE on first boot
+    uint8_t  header;          // low nibble: device id (0–15); high nibble: rolling counter (0–15)
+    uint16_t wakeCount;       // number of ext wakeups accumulated since last send
     uint16_t sonarMm;         // sonar distance in mm (0.1 cm resolution, 0–65535 mm)
     uint16_t turbidity;       // raw ADC 0–4095
     uint16_t humidity;        // raw ADC 0–4095

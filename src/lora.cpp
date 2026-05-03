@@ -52,18 +52,17 @@ void loraPrintFrame(const HydriaFrame &frame) {
         Serial.print(b[i], HEX);
     }
     Serial.println("]");
-    // Human-readable
-    const char *wake  = (frame.flags & FRAME_FLAG_EXT_WAKEUP) ? "ext" : "timer";
-    const char *since = (frame.sinceMeasureS == FRAME_NO_PRIOR_MEASURE) ? "first-boot" : nullptr;
-    char sinceBuf[16];
-    if (!since) { snprintf(sinceBuf, sizeof(sinceBuf), "%u s", frame.sinceMeasureS); since = sinceBuf; }
+    // Human-readable (wake source inferred from count)
+    const char *wake = (frame.wakeCount >= EXT_WAKEUP_THRESHOLD) ? "ext" : "timer";
+    uint8_t id   = FRAME_DEVICE_ID(frame.header);
+    uint8_t roll = FRAME_ROLLING(frame.header);
 
     if (frame.sonarMm == 0xFFFF) {
-        Serial.printf("  wake=%-5s since=%-10s sonar=no echo  turb=%u hum=%u batt=%u%%\n",
-            wake, since, frame.turbidity, frame.humidity, frame.battery);
+        Serial.printf("  id=%u roll=%u wake=%-5s wakes=%u sonar=no echo  turb=%u hum=%u batt=%u%%\n",
+            id, roll, wake, frame.wakeCount, frame.turbidity, frame.humidity, frame.battery);
     } else {
-        Serial.printf("  wake=%-5s since=%-10s sonar=%.1f cm turb=%u hum=%u batt=%u%%\n",
-            wake, since, frame.sonarMm / 10.0f, frame.turbidity, frame.humidity, frame.battery);
+        Serial.printf("  id=%u roll=%u wake=%-5s wakes=%u sonar=%.1f cm turb=%u hum=%u batt=%u%%\n",
+            id, roll, wake, frame.wakeCount, frame.sonarMm / 10.0f, frame.turbidity, frame.humidity, frame.battery);
     }
     Serial.printf("  hmac=%02X%02X%02X%02X%02X%02X\n",
         frame.hmac[0], frame.hmac[1], frame.hmac[2],
